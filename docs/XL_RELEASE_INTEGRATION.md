@@ -184,7 +184,7 @@ spec:
         - name: Notify Stakeholders
           type: slack.PostMessage
           channel: releases
-          message: "✅ ${appName} v${version} deployed to production"
+          message: "[SUCCESS] ${appName} v${version} deployed to production"
 ```
 
 ### Rollback Template

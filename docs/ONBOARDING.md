@@ -333,19 +333,19 @@ If you need to bypass a security gate temporarily:
 
 ### Do
 
-- ✅ Use the bootstrap script for new services
-- ✅ Keep configurations in Git
-- ✅ Use digest-based image references in prod
-- ✅ Monitor build notifications
-- ✅ Update dependencies regularly
+- Use the bootstrap script for new services
+- Keep configurations in Git
+- Use digest-based image references in prod
+- Monitor build notifications
+- Update dependencies regularly
 
 ### Don't
 
-- ❌ Skip security scans (use exceptions instead)
-- ❌ Deploy to prod without testing in QA
-- ❌ Hardcode secrets or credentials
-- ❌ Modify pipeline behavior per-service
-- ❌ Ignore quality gate failures
+- Skip security scans (use exceptions instead)
+- Deploy to prod without testing in QA
+- Hardcode secrets or credentials
+- Modify pipeline behavior per-service
+- Ignore quality gate failures
 
 ---
 
