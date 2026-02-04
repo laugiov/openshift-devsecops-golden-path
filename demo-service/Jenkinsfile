@@ -1,0 +1,47 @@
+#!/usr/bin/env groovy
+
+/**
+ * Demo Service Pipeline
+ *
+ * This is ALL that should be in a service Jenkinsfile.
+ * All pipeline logic lives in the shared library.
+ *
+ * Services don't get to "customize" security.
+ */
+
+@Library('golden-path@v1.0.0') _
+
+goldenPipeline(
+    appName: 'demo-service',
+    buildTool: 'node',
+
+    // Registry (uses environment default if not specified)
+    registry: env.REGISTRY_URL ?: 'localhost:5000',
+
+    // Security gates - all enabled by default, shown explicitly for clarity
+    enableSast: true,
+    enableSca: true,
+    enableSecrets: true,
+    failOnSecurityFindings: true,
+
+    // Quality gate
+    sonarqubeServer: 'SonarQube',
+    sonarqubeQualityGate: true,
+
+    // Supply chain security
+    enableSbom: true,
+    enableSigning: true,
+    cosignKeyPath: '../cosign.key',
+
+    // GitOps (disabled for demo, enable for real deployments)
+    enableGitOps: false,
+    // gitopsRepo: 'git@github.com:acme/gitops.git',
+    // targetEnv: 'dev',
+
+    // Build configuration
+    dockerfile: 'Dockerfile',
+    buildContext: '.'
+
+    // Slack notifications (uncomment to enable)
+    // slackChannel: '#builds'
+)

@@ -1,0 +1,198 @@
+#!/usr/bin/env groovy
+
+/**
+ * Demo Service Standalone Pipeline
+ *
+ * This is a standalone version for testing when shared library is not configured.
+ * In production, use the main Jenkinsfile with the shared library.
+ */
+
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'demo-service'
+        REGISTRY = "${env.REGISTRY_URL ?: 'localhost:5000'}"
+        IMAGE_TAG = "${env.GIT_COMMIT?.take(8) ?: 'latest'}"
+        IMAGE_NAME = "${REGISTRY}/${APP_NAME}"
+        REPORTS_DIR = 'reports'
+        PROJECT_ROOT = "${WORKSPACE}/.."
+    }
+
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timestamps()
+    }
+
+    stages {
+        stage('Initialize') {
+            steps {
+                sh 'mkdir -p ${REPORTS_DIR}'
+                echo "=== Golden Path Pipeline (Standalone) ==="
+                echo "Application: ${APP_NAME}"
+                echo "Registry: ${REGISTRY}"
+                echo "Image: ${IMAGE_NAME}:${IMAGE_TAG}"
+            }
+        }
+
+        stage('Security Scans') {
+            parallel {
+                stage('SAST') {
+                    steps {
+                        sh '''
+                            cd ${WORKSPACE}
+                            ${PROJECT_ROOT}/scripts/scanners/run-sast.sh . || true
+                            cp ${PROJECT_ROOT}/reports/sast-*.json ${REPORTS_DIR}/ 2>/dev/null || true
+                        '''
+                    }
+                }
+
+                stage('SCA') {
+                    steps {
+                        sh '''
+                            cd ${WORKSPACE}
+                            ${PROJECT_ROOT}/scripts/scanners/run-sca.sh . || true
+                            cp ${PROJECT_ROOT}/reports/sca-*.json ${REPORTS_DIR}/ 2>/dev/null || true
+                        '''
+                    }
+                }
+
+                stage('Secrets') {
+                    steps {
+                        sh '''
+                            cd ${WORKSPACE}
+                            ${PROJECT_ROOT}/scripts/scanners/run-secrets-scan.sh . || true
+                            cp ${PROJECT_ROOT}/reports/secrets-*.json ${REPORTS_DIR}/ 2>/dev/null || true
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Build Application') {
+            steps {
+                sh '''
+                    cd ${WORKSPACE}
+                    if [ -f package-lock.json ]; then
+                        npm ci
+                    else
+                        npm install
+                    fi
+                    npm run build --if-present
+                    npm test --if-present || true
+                '''
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                script {
+                    def sonarAvailable = sh(
+                        script: 'curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/api/system/status',
+                        returnStdout: true
+                    ).trim() == '200'
+
+                    if (sonarAvailable) {
+                        withSonarQubeEnv('SonarQube') {
+                            sh '''
+                                if command -v sonar-scanner &> /dev/null; then
+                                    sonar-scanner \
+                                        -Dsonar.projectKey=${APP_NAME} \
+                                        -Dsonar.sources=.
+                                else
+                                    echo "SonarQube scanner not available, skipping"
+                                fi
+                            '''
+                        }
+                    } else {
+                        echo "SonarQube not available, skipping quality gate"
+                    }
+                }
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                sh '''
+                    cd ${WORKSPACE}
+                    docker build \
+                        -t ${IMAGE_NAME}:${IMAGE_TAG} \
+                        -t ${IMAGE_NAME}:latest \
+                        --label "org.opencontainers.image.revision=${GIT_COMMIT:-unknown}" \
+                        --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+                        .
+                '''
+            }
+        }
+
+        stage('Generate SBOM') {
+            steps {
+                sh '''
+                    cd ${WORKSPACE}
+                    ${PROJECT_ROOT}/scripts/sbom/generate-sbom.sh . || true
+                    cp ${PROJECT_ROOT}/reports/sbom-*.json ${REPORTS_DIR}/ 2>/dev/null || true
+                '''
+            }
+        }
+
+        stage('Sign Image') {
+            steps {
+                script {
+                    def cosignAvailable = sh(
+                        script: 'command -v cosign || docker images gcr.io/projectsigstore/cosign --format "{{.ID}}" | head -1',
+                        returnStatus: true
+                    ) == 0
+
+                    if (cosignAvailable && fileExists("${PROJECT_ROOT}/cosign.key")) {
+                        echo "Signing image with Cosign..."
+                        sh '''
+                            ${PROJECT_ROOT}/scripts/signing/sign-image.sh ${IMAGE_NAME}:${IMAGE_TAG} || true
+                        '''
+                    } else {
+                        echo "Cosign or signing key not available, skipping signing"
+                    }
+                }
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                sh '''
+                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                    docker push ${IMAGE_NAME}:latest
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: "${REPORTS_DIR}/**/*", allowEmptyArchive: true
+
+            // Write build summary
+            sh '''
+                cat > ${REPORTS_DIR}/build-summary.json << EOF
+{
+    "appName": "${APP_NAME}",
+    "buildNumber": "${BUILD_NUMBER}",
+    "gitCommit": "${GIT_COMMIT:-unknown}",
+    "imageTag": "${IMAGE_TAG}",
+    "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+EOF
+            '''
+
+            cleanWs()
+        }
+
+        success {
+            echo "Pipeline completed successfully"
+        }
+
+        failure {
+            echo "Pipeline failed"
+        }
+    }
+}

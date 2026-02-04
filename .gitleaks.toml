@@ -1,0 +1,17 @@
+# Gitleaks configuration for Golden Path project
+# See: https://github.com/gitleaks/gitleaks#configuration
+
+title = "Golden Path Gitleaks Config"
+
+# Paths to exclude from scanning
+[allowlist]
+paths = [
+    '''local/''',
+    '''node_modules/''',
+    '''reports/''',
+    '''\.env\.example$''',
+    '''fixtures/''',
+]
+
+# Description patterns to ignore (test files, examples)
+description = "Exclude test files and examples"

@@ -1,0 +1,47 @@
+# QA Environment Values
+# Promoted via PR from dev, requires team review
+
+replicaCount: 2
+
+image:
+  repository: 172.23.0.5:5000/demo-service
+  # IMPORTANT: Use digest for immutability
+  # Updated by promotion PR
+  tag: ""
+  digest: ""
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: demo-service.qa.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  limits:
+    cpu: 300m
+    memory: 384Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+env:
+  NODE_ENV: qa
+  LOG_LEVEL: info
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5

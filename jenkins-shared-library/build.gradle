@@ -1,0 +1,52 @@
+plugins {
+    id 'groovy'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.codehaus.groovy:groovy-all:3.0.19'
+
+    testImplementation 'org.spockframework:spock-core:2.3-groovy-3.0'
+    testImplementation 'junit:junit:4.13.2'
+}
+
+sourceSets {
+    main {
+        groovy {
+            srcDirs = ['vars', 'src']
+        }
+    }
+    test {
+        groovy {
+            srcDirs = ['test/groovy']
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
+
+    reports {
+        html.required = true
+        junitXml.required = true
+    }
+}
+
+// Task to run tests with detailed output
+task testVerbose(type: Test) {
+    useJUnitPlatform()
+    testLogging {
+        events "started", "passed", "skipped", "failed", "standardOut", "standardError"
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
+}

@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-service-prod
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: demo-service
+    app.kubernetes.io/environment: prod
+  annotations:
+    # Require explicit sync - no auto-deploy to prod
+    argocd.argoproj.io/sync-wave: "10"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: {{ .Values.gitops.repoURL }}
+    targetRevision: {{ .Values.gitops.targetRevision | default "HEAD" }}
+    path: gitops/apps/demo-service
+    helm:
+      valueFiles:
+        - ../../env/prod/values-demo-service.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: demo-prod
+
+  # PROD: Manual sync ONLY - requires PR + approval
+  # No automated sync policy - deliberate
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

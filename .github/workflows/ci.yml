@@ -1,0 +1,192 @@
+# Golden Path CI Pipeline
+#
+# This workflow validates the golden path repository itself.
+# "Eat your own dog food" - we apply DevSecOps practices to our own code.
+#
+name: Golden Path CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ===========================================================================
+  # Code Quality & Tests
+  # ===========================================================================
+  test:
+    name: Tests & Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: demo-service/package-lock.json
+
+      - name: Install dependencies
+        working-directory: demo-service
+        run: npm ci
+
+      - name: Run linter
+        working-directory: demo-service
+        run: npm run lint
+
+      - name: Run tests with coverage
+        working-directory: demo-service
+        run: npm test
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: demo-service/coverage/
+          retention-days: 7
+
+  # ===========================================================================
+  # Security Scanning
+  # ===========================================================================
+  security:
+    name: Security Scans
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for gitleaks
+
+      - name: Run Gitleaks (Secrets Detection)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Trivy (Vulnerability Scan)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          ignore-unfixed: true
+          format: 'table'
+
+  # ===========================================================================
+  # YAML & Groovy Validation
+  # ===========================================================================
+  validate:
+    name: Validate Configs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate YAML files
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: |
+            gitops/
+            .github/
+          config_data: |
+            extends: default
+            rules:
+              line-length:
+                max: 150
+              truthy:
+                check-keys: false
+
+      - name: Setup Java (for Groovy)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Validate Groovy syntax
+        working-directory: jenkins-shared-library
+        run: |
+          # Check Groovy files compile without errors
+          ./gradlew compileGroovy --quiet || {
+            echo "::error::Groovy compilation failed"
+            exit 1
+          }
+          echo "Groovy syntax validation passed"
+
+  # ===========================================================================
+  # Docker Build Test
+  # ===========================================================================
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build demo-service image
+        uses: docker/build-push-action@v5
+        with:
+          context: demo-service
+          push: false
+          tags: demo-service:ci-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan built image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'demo-service:ci-${{ github.sha }}'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          ignore-unfixed: true
+
+  # ===========================================================================
+  # Documentation Check
+  # ===========================================================================
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for broken links in markdown
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          config-file: '.github/mlc-config.json'
+        continue-on-error: true  # Don't fail on external links
+
+      - name: Verify required docs exist
+        run: |
+          required_docs=(
+            "README.md"
+            "CONTRIBUTING.md"
+            "SECURITY.md"
+            "LICENSE"
+            "docs/ARCHITECTURE.md"
+            "docs/DESIGN_DECISIONS.md"
+            "docs/ONBOARDING.md"
+          )
+
+          missing=()
+          for doc in "${required_docs[@]}"; do
+            if [[ ! -f "$doc" ]]; then
+              missing+=("$doc")
+            fi
+          done
+
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "::error::Missing required documentation: ${missing[*]}"
+            exit 1
+          fi
+
+          echo "All required documentation present"

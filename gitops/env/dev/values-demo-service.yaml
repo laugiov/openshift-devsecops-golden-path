@@ -1,0 +1,49 @@
+# Development Environment Values
+# Auto-deployed on every successful build
+
+replicaCount: 1
+
+image:
+  # For Kind: use registry IP or connect registry to kind network
+  # For production: use actual registry URL
+  repository: 172.23.0.5:5000/demo-service
+  # Updated automatically by pipeline
+  tag: "latest"
+  digest: ""
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: demo-service.dev.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+env:
+  NODE_ENV: development
+  LOG_LEVEL: debug
+
+# Dev-specific: less strict probes
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  failureThreshold: 5
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 3
+  periodSeconds: 5

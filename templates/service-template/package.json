@@ -1,0 +1,17 @@
+{
+  "name": "{{SERVICE_NAME}}",
+  "version": "1.0.0",
+  "description": "{{SERVICE_DESCRIPTION}}",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "echo \"No tests yet\" && exit 0",
+    "lint": "echo \"No linting configured\" && exit 0"
+  },
+  "author": "{{TEAM_NAME}}",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

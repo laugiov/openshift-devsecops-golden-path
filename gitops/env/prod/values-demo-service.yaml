@@ -1,0 +1,63 @@
+# Production Environment Values
+# Promoted via PR from qa, requires lead + security review
+
+replicaCount: 3
+
+image:
+  repository: 172.23.0.5:5000/demo-service
+  # CRITICAL: Must use digest for immutability
+  # Same bytes that passed QA must run in prod
+  tag: ""
+  digest: ""
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+  hosts:
+    - host: demo-service.prod.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+env:
+  NODE_ENV: production
+  LOG_LEVEL: warn
+
+# Production: stricter probes
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 3
+
+# Production: enable HPA
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+# Production: pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2

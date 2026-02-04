@@ -1,0 +1,12 @@
+# App-of-Apps Configuration
+# Bootstrap all applications in the cluster
+
+gitops:
+  # Git repository containing the GitOps configuration
+  # For local testing, use the local path
+  repoURL: https://github.com/acme/openshift-devsecops-golden-path.git
+  targetRevision: main
+
+# Override for local Kind cluster testing
+# repoURL: file:///gitops
+# targetRevision: HEAD

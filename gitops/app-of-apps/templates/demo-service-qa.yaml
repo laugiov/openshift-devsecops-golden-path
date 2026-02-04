@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-service-qa
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: demo-service
+    app.kubernetes.io/environment: qa
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: {{ .Values.gitops.repoURL }}
+    targetRevision: {{ .Values.gitops.targetRevision | default "HEAD" }}
+    path: gitops/apps/demo-service
+    helm:
+      valueFiles:
+        - ../../env/qa/values-demo-service.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: demo-qa
+
+  # QA: Manual sync only - requires PR approval
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m

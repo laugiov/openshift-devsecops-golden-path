@@ -1,0 +1,10 @@
+apiVersion: v2
+name: {{SERVICE_NAME}}
+description: A Helm chart for {{SERVICE_NAME}}
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+maintainers:
+  - name: {{TEAM_NAME}}
+    email: {{TEAM_EMAIL}}

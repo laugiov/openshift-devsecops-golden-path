@@ -1,0 +1,162 @@
+# Image Verification Policy
+#
+# Enforces that all container images in production namespaces
+# are signed with a valid Cosign signature.
+#
+# Prerequisites:
+# - Kyverno installed: helm install kyverno kyverno/kyverno -n kyverno --create-namespace
+# - Public key stored in ConfigMap (see below)
+#
+# Usage:
+# 1. Create the cosign public key ConfigMap:
+#    kubectl create configmap cosign-pubkey -n kyverno --from-file=cosign.pub
+#
+# 2. Apply this policy:
+#    kubectl apply -f image-verification-policy.yaml
+#
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-image-signatures
+  annotations:
+    policies.kyverno.io/title: Verify Image Signatures
+    policies.kyverno.io/category: Supply Chain Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Ensures all container images in production namespaces are signed
+      with the organization's Cosign key. Unsigned or incorrectly signed
+      images will be blocked from deployment.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  webhookTimeoutSeconds: 30
+  failurePolicy: Fail
+  rules:
+    # Rule 1: Verify signatures for production namespace
+    - name: verify-signature-prod
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - "*-prod"
+                - "production"
+      verifyImages:
+        - imageReferences:
+            - "registry.acme.io/*"
+            - "*.dkr.ecr.*.amazonaws.com/*"
+            - "gcr.io/acme-*/*"
+          attestors:
+            - count: 1
+              entries:
+                - keys:
+                    publicKeys: |-
+                      -----BEGIN PUBLIC KEY-----
+                      MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE... (replace with actual key)
+                      -----END PUBLIC KEY-----
+          mutateDigest: true
+          verifyDigest: true
+
+    # Rule 2: Verify signatures for QA namespace (warn mode)
+    - name: verify-signature-qa
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - "*-qa"
+                - "staging"
+      verifyImages:
+        - imageReferences:
+            - "registry.acme.io/*"
+          attestors:
+            - count: 1
+              entries:
+                - keys:
+                    publicKeys: |-
+                      -----BEGIN PUBLIC KEY-----
+                      MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE... (replace with actual key)
+                      -----END PUBLIC KEY-----
+
+    # Rule 3: Block latest tags in production
+    - name: block-latest-tag
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - "*-prod"
+                - "production"
+      validate:
+        message: "Using 'latest' tag is not allowed in production. Use digest-based references."
+        pattern:
+          spec:
+            containers:
+              - image: "!*:latest"
+            initContainers:
+              - image: "!*:latest"
+
+    # Rule 4: Require digest-based references in production
+    - name: require-digest
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - "*-prod"
+                - "production"
+      validate:
+        message: "Images in production must use digest references (@sha256:...)"
+        pattern:
+          spec:
+            containers:
+              - image: "*@sha256:*"
+
+---
+# Alternative: Sigstore Policy Controller
+# Use this if you prefer native Sigstore integration
+apiVersion: policy.sigstore.dev/v1beta1
+kind: ClusterImagePolicy
+metadata:
+  name: signed-images-policy
+  annotations:
+    description: "Requires all images to be signed with organization Cosign key"
+spec:
+  mode: enforce
+  images:
+    - glob: "registry.acme.io/**"
+    - glob: "*.dkr.ecr.*.amazonaws.com/**"
+  authorities:
+    - name: acme-cosign-key
+      key:
+        data: |
+          -----BEGIN PUBLIC KEY-----
+          MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE... (replace with actual key)
+          -----END PUBLIC KEY-----
+      attestations:
+        - name: sbom-attestation
+          predicateType: https://cyclonedx.org/bom
+          policy:
+            type: cue
+            data: |
+              predicateType: "https://cyclonedx.org/bom"
+
+---
+# ConfigMap for storing the public key
+# Create with: kubectl create configmap cosign-pubkey --from-file=cosign.pub -n kyverno
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cosign-pubkey
+  namespace: kyverno
+data:
+  cosign.pub: |
+    -----BEGIN PUBLIC KEY-----
+    MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE... (replace with actual key)
+    -----END PUBLIC KEY-----

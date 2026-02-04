@@ -1,0 +1,7 @@
+[safe]
+    directory = /var/jenkins_home/shared-library
+    directory = *
+
+[user]
+    email = jenkins@localhost
+    name = Jenkins

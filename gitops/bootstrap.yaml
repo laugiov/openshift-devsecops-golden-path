@@ -1,0 +1,35 @@
+# Bootstrap Application
+# Apply this to start the GitOps workflow:
+#   kubectl apply -f gitops/bootstrap.yaml
+#
+# This creates an App-of-Apps that manages all other applications
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: golden-path-apps
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: golden-path
+    app.kubernetes.io/component: bootstrap
+spec:
+  project: default
+
+  source:
+    # For GitHub:
+    # repoURL: https://github.com/acme/openshift-devsecops-golden-path.git
+    # For local testing with Kind:
+    repoURL: https://github.com/acme/openshift-devsecops-golden-path.git
+    targetRevision: main
+    path: gitops/app-of-apps
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

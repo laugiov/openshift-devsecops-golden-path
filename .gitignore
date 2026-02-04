@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+vendor/
+.venv/
+__pycache__/
+
+# Build outputs
+dist/
+build/
+*.jar
+*.war
+target/
+.gradle/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+cosign.key
+cosign.pub
+
+# Docker
+docker-compose.override.yml
+
+# Jenkins
+.jenkins/
+
+# Test outputs
+coverage/
+.nyc_output/
+test-results/
+*.log
+
+# Local working directory (not versioned)
+/local
+
+# OS files
+Thumbs.db

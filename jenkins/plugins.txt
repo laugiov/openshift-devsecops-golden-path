@@ -1,0 +1,36 @@
+# Jenkins plugins for Golden Path Pipeline
+# Install with: jenkins-plugin-cli --plugin-file /path/to/plugins.txt
+
+# Pipeline essentials
+workflow-aggregator
+pipeline-stage-view
+pipeline-graph-analysis
+
+# Global Pipeline Libraries (CRITICAL)
+pipeline-groovy-lib
+
+# Git integration
+git
+github
+github-branch-source
+
+# Build tools
+nodejs
+
+# Quality gates
+sonar
+
+# Credentials
+credentials
+credentials-binding
+ssh-credentials
+
+# Docker
+docker-workflow
+docker-commons
+
+# Utilities
+timestamper
+ansicolor
+rebuild
+ws-cleanup

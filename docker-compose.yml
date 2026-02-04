@@ -1,0 +1,197 @@
+# OpenShift DevSecOps Golden Path - Local Development Stack
+#
+# Services:
+#   - Jenkins (CI/CD engine)
+#   - SonarQube (Quality gates)
+#   - Nexus (Artifact repository)
+#   - Registry (Container images)
+#   - PostgreSQL (SonarQube database)
+#
+# Usage:
+#   make up       - Start all services
+#   make down     - Stop all services
+#   make health   - Check service health
+
+services:
+  # ==========================================================================
+  # Jenkins - CI/CD Engine
+  # ==========================================================================
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: golden-path-jenkins
+    restart: unless-stopped
+    privileged: true
+    user: root
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./jenkins-shared-library:/var/jenkins_home/shared-library:ro
+      - ./jenkins/init.groovy.d:/var/jenkins_home/init.groovy.d:ro
+      - ./jenkins/plugins.txt:/usr/share/jenkins/ref/plugins.txt:ro
+      - ./jenkins/gitconfig:/etc/gitconfig:ro
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false -Dhudson.plugins.git.GitSCM.ALLOW_LOCAL_CHECKOUT=true
+      - JENKINS_OPTS=--prefix=/
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - golden-path-network
+    depends_on:
+      - registry
+      - sonarqube
+      - nexus
+
+  # ==========================================================================
+  # SonarQube - Code Quality & Security Analysis
+  # ==========================================================================
+  sonarqube:
+    image: sonarqube:9.9-community
+    container_name: golden-path-sonarqube
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://postgres:5432/sonarqube
+      - SONAR_JDBC_USERNAME=sonar
+      - SONAR_JDBC_PASSWORD=sonar
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      nproc:
+        soft: 4096
+        hard: 4096
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/api/system/status | grep -q UP || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
+    networks:
+      - golden-path-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ==========================================================================
+  # PostgreSQL - Database for SonarQube
+  # ==========================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: golden-path-postgres
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+      - POSTGRES_DB=sonarqube
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sonar -d sonarqube"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - golden-path-network
+
+  # ==========================================================================
+  # Nexus - Artifact Repository
+  # ==========================================================================
+  nexus:
+    image: sonatype/nexus3:latest
+    container_name: golden-path-nexus
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+      - "8082:8082"  # Docker registry port
+    volumes:
+      - nexus_data:/nexus-data
+    environment:
+      - INSTALL4J_ADD_VM_PARAMS=-Xms512m -Xmx1024m -XX:MaxDirectMemorySize=1g
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks:
+      - golden-path-network
+
+  # ==========================================================================
+  # Registry - Container Image Registry
+  # ==========================================================================
+  registry:
+    image: registry:2
+    container_name: golden-path-registry
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - registry_data:/var/lib/registry
+    environment:
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5000/v2/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - golden-path-network
+
+  # ==========================================================================
+  # Docker-in-Docker - For Jenkins to build containers
+  # ==========================================================================
+  dind:
+    image: docker:24-dind
+    container_name: golden-path-dind
+    restart: unless-stopped
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=
+    volumes:
+      - dind_data:/var/lib/docker
+    networks:
+      - golden-path-network
+
+# ==========================================================================
+# Networks
+# ==========================================================================
+networks:
+  golden-path-network:
+    driver: bridge
+    name: golden-path-network
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  jenkins_home:
+    name: golden-path-jenkins-home
+  sonarqube_data:
+    name: golden-path-sonarqube-data
+  sonarqube_logs:
+    name: golden-path-sonarqube-logs
+  sonarqube_extensions:
+    name: golden-path-sonarqube-extensions
+  postgres_data:
+    name: golden-path-postgres-data
+  nexus_data:
+    name: golden-path-nexus-data
+  registry_data:
+    name: golden-path-registry-data
+  dind_data:
+    name: golden-path-dind-data

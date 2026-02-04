@@ -1,0 +1,38 @@
+# Local Bootstrap for Kind Cluster Testing
+# Apply this for local testing:
+#   kubectl apply -f gitops/bootstrap-local.yaml
+#
+# Note: Requires the repo to be accessible from the cluster
+# For Kind, mount the repo or use a git server
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-service-dev
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: demo-service
+    app.kubernetes.io/environment: dev
+spec:
+  project: default
+
+  source:
+    # For local Kind testing, we apply manifests directly
+    # In production, this would point to the Git repository
+    repoURL: https://github.com/acme/openshift-devsecops-golden-path.git
+    targetRevision: main
+    path: gitops/apps/demo-service
+    helm:
+      valueFiles:
+        - ../../env/dev/values-demo-service.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: demo-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
