@@ -1,0 +1,34 @@
+#!/usr/bin/env groovy
+/**
+ * Java Service Pipeline
+ *
+ * Golden Path pipeline for Java/Maven services.
+ * Uses the shared library for standardized DevSecOps controls.
+ */
+
+@Library('golden-path-library') _
+
+goldenPipeline(
+    appName: 'java-demo-service',
+    buildTool: 'maven',
+    registry: env.REGISTRY_URL ?: 'localhost:5000',
+
+    // Security scanning
+    enableSast: true,
+    enableSca: true,
+    enableSecrets: true,
+    failOnSecurityFindings: true,
+
+    // Quality gates
+    sonarqubeServer: 'SonarQube',
+    sonarqubeQualityGate: true,
+
+    // Supply chain security
+    enableSbom: true,
+    enableSigning: true,
+
+    // GitOps deployment
+    enableGitOps: true,
+    gitopsRepo: env.GITOPS_REPO_URL ?: '',
+    targetEnv: 'dev'
+)

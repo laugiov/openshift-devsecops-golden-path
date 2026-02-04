@@ -1,12 +1,12 @@
 /**
- * {{SERVICE_NAME}} - Main Entry Point
+ * __SERVICE_NAME__ - Main Entry Point
  * Generated from Golden Path template
  */
 
 const http = require('http');
 
-const PORT = process.env.PORT || {{SERVICE_PORT}};
-const SERVICE_NAME = '{{SERVICE_NAME}}';
+const PORT = process.env.PORT || __SERVICE_PORT__;
+const SERVICE_NAME = '__SERVICE_NAME__';
 const VERSION = process.env.VERSION || '1.0.0';
 
 // Simple routing

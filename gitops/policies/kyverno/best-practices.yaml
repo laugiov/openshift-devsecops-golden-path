@@ -1,0 +1,290 @@
+# Kyverno Best Practices Policies
+#
+# Enterprise policies for operational excellence and governance.
+#
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-labels
+  annotations:
+    policies.kyverno.io/title: Require Standard Labels
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod, Deployment
+    policies.kyverno.io/description: >-
+      All workloads must have standard Kubernetes labels for identification,
+      monitoring, and cost allocation purposes.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-labels-deployment
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - StatefulSet
+                - DaemonSet
+      validate:
+        message: >-
+          Deployments must have labels: app.kubernetes.io/name,
+          app.kubernetes.io/version, app.kubernetes.io/managed-by
+        pattern:
+          metadata:
+            labels:
+              app.kubernetes.io/name: "?*"
+              app.kubernetes.io/version: "?*"
+              app.kubernetes.io/managed-by: "?*"
+          spec:
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: "?*"
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-resource-limits
+  annotations:
+    policies.kyverno.io/title: Require Resource Limits
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      All containers must specify CPU and memory limits to ensure fair
+      resource allocation and prevent resource exhaustion.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: validate-resources
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: >-
+          CPU and memory limits are required. Add resources.limits.cpu
+          and resources.limits.memory to all containers.
+        pattern:
+          spec:
+            containers:
+              - resources:
+                  limits:
+                    memory: "?*"
+                    cpu: "?*"
+                  requests:
+                    memory: "?*"
+                    cpu: "?*"
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-probes
+  annotations:
+    policies.kyverno.io/title: Require Health Probes
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: low
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Production workloads should have readiness and liveness probes
+      for proper health management.
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: validate-probes
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - "*-prod"
+                - "production"
+      validate:
+        message: >-
+          Production pods should have readinessProbe and livenessProbe defined.
+        pattern:
+          spec:
+            containers:
+              - livenessProbe:
+                  "?*": "?*"
+                readinessProbe:
+                  "?*": "?*"
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-default-namespace
+  annotations:
+    policies.kyverno.io/title: Disallow Default Namespace
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Pods should not be deployed to the default namespace.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: validate-namespace
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - default
+      validate:
+        message: >-
+          Pods should not be deployed to the default namespace.
+          Create an application-specific namespace.
+        deny: {}
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-nodeport-services
+  annotations:
+    policies.kyverno.io/title: Disallow NodePort Services
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Service
+    policies.kyverno.io/description: >-
+      NodePort services expose applications on each node and should be
+      avoided in favor of LoadBalancer or Ingress.
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: disallow-nodeport
+      match:
+        any:
+          - resources:
+              kinds:
+                - Service
+      validate:
+        message: >-
+          NodePort services are discouraged. Use ClusterIP with
+          Ingress or LoadBalancer services instead.
+        pattern:
+          spec:
+            type: "!NodePort"
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-pod-disruption-budget
+  annotations:
+    policies.kyverno.io/title: Require Pod Disruption Budget
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: low
+    policies.kyverno.io/subject: Deployment
+    policies.kyverno.io/description: >-
+      Production deployments with replicas > 1 should have a
+      PodDisruptionBudget for high availability.
+spec:
+  validationFailureAction: Audit
+  background: false
+  rules:
+    - name: check-pdb-exists
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+              namespaces:
+                - "*-prod"
+                - "production"
+      preconditions:
+        all:
+          - key: "{{ request.object.spec.replicas }}"
+            operator: GreaterThan
+            value: 1
+      validate:
+        message: >-
+          Deployments with multiple replicas in production should have
+          a PodDisruptionBudget. Create a PDB for {{ request.object.metadata.name }}.
+        deny: {}
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-read-only-root-filesystem
+  annotations:
+    policies.kyverno.io/title: Require Read-Only Root Filesystem
+    policies.kyverno.io/category: Pod Security Standards (Restricted)
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      A read-only root filesystem helps prevent malicious binaries from
+      being written to the container.
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: validate-readOnlyRootFilesystem
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - "*-prod"
+                - "production"
+      validate:
+        message: >-
+          Root filesystem should be read-only. Set
+          securityContext.readOnlyRootFilesystem to true.
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  readOnlyRootFilesystem: true
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: restrict-image-registries
+  annotations:
+    policies.kyverno.io/title: Restrict Image Registries
+    policies.kyverno.io/category: Supply Chain Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Container images may only come from approved registries to ensure
+      they have been scanned and approved.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: validate-registries
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - "*-prod"
+                - "production"
+      validate:
+        message: >-
+          Images must come from approved registries: registry.acme.io,
+          gcr.io/acme-*, *.dkr.ecr.*.amazonaws.com
+        pattern:
+          spec:
+            containers:
+              - image: "registry.acme.io/* | gcr.io/acme-*/* | *.dkr.ecr.*.amazonaws.com/*"
+            =(initContainers):
+              - image: "registry.acme.io/* | gcr.io/acme-*/* | *.dkr.ecr.*.amazonaws.com/*"

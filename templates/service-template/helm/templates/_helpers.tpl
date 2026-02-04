@@ -1,14 +1,14 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "{{SERVICE_NAME}}.name" -}}
+{{- define "service-template.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Create a default fully qualified app name.
 */}}
-{{- define "{{SERVICE_NAME}}.fullname" -}}
+{{- define "service-template.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -24,16 +24,16 @@ Create a default fully qualified app name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "{{SERVICE_NAME}}.chart" -}}
+{{- define "service-template.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "{{SERVICE_NAME}}.labels" -}}
-helm.sh/chart: {{ include "{{SERVICE_NAME}}.chart" . }}
-{{ include "{{SERVICE_NAME}}.selectorLabels" . }}
+{{- define "service-template.labels" -}}
+helm.sh/chart: {{ include "service-template.chart" . }}
+{{ include "service-template.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -43,17 +43,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "{{SERVICE_NAME}}.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "{{SERVICE_NAME}}.name" . }}
+{{- define "service-template.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "service-template.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "{{SERVICE_NAME}}.serviceAccountName" -}}
+{{- define "service-template.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "{{SERVICE_NAME}}.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "service-template.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
@@ -62,7 +62,7 @@ Create the name of the service account to use
 {{/*
 Image reference: prefer digest over tag for immutability
 */}}
-{{- define "{{SERVICE_NAME}}.image" -}}
+{{- define "service-template.image" -}}
 {{- if .Values.image.digest }}
 {{- printf "%s@%s" .Values.image.repository .Values.image.digest }}
 {{- else }}

@@ -91,6 +91,16 @@ test: ## Run all tests
 	@echo "Running shared library unit tests..."
 	cd jenkins-shared-library && ./gradlew test --quiet || echo "Note: Groovy tests require Jenkins mocking setup"
 
+test-integration: ## Run Docker integration tests (requires Docker)
+	@echo "Running integration tests with Docker..."
+	./scripts/test/integration-test.sh
+
+test-integration-quick: ## Run quick Docker integration tests
+	@echo "Running quick integration tests..."
+	./scripts/test/integration-test.sh --quick --keep
+
+test-all: test test-integration ## Run all tests including integration
+
 scan-sast: ## Run SAST scan
 	@echo "Running SAST scan..."
 	./scripts/scanners/run-sast.sh

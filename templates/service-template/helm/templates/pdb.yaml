@@ -3,9 +3,9 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "{{SERVICE_NAME}}.fullname" . }}
+  name: {{ include "service-template.fullname" . }}
   labels:
-    {{- include "{{SERVICE_NAME}}.labels" . | nindent 4 }}
+    {{- include "service-template.labels" . | nindent 4 }}
 spec:
   {{- if .Values.podDisruptionBudget.minAvailable }}
   minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
@@ -15,6 +15,6 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      {{- include "{{SERVICE_NAME}}.selectorLabels" . | nindent 6 }}
+      {{- include "service-template.selectorLabels" . | nindent 6 }}
 {{- end }}
 {{- end }}

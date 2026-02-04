@@ -1,0 +1,344 @@
+# Kyverno Baseline Security Policies
+#
+# These policies implement Kubernetes Pod Security Standards (baseline level)
+# and enterprise best practices for production workloads.
+#
+# Reference: https://kubernetes.io/docs/concepts/security/pod-security-standards/
+#
+# Install:
+#   kubectl apply -f baseline-policies.yaml
+#
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-privileged-containers
+  annotations:
+    policies.kyverno.io/title: Disallow Privileged Containers
+    policies.kyverno.io/category: Pod Security Standards (Baseline)
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/minversion: 1.6.0
+    policies.kyverno.io/description: >-
+      Privileged mode disables most security mechanisms and must not be allowed.
+      This policy ensures containers cannot run in privileged mode.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: privileged-containers
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: >-
+          Privileged mode is disallowed. Set securityContext.privileged to false.
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  privileged: "false"
+            =(initContainers):
+              - securityContext:
+                  privileged: "false"
+            =(ephemeralContainers):
+              - securityContext:
+                  privileged: "false"
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-privilege-escalation
+  annotations:
+    policies.kyverno.io/title: Disallow Privilege Escalation
+    policies.kyverno.io/category: Pod Security Standards (Baseline)
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Privilege escalation allows a process to gain more privileges than its parent.
+      This policy ensures containers set allowPrivilegeEscalation to false.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: privilege-escalation
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: >-
+          Privilege escalation is disallowed. Set allowPrivilegeEscalation to false.
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  allowPrivilegeEscalation: false
+            =(initContainers):
+              - securityContext:
+                  allowPrivilegeEscalation: false
+            =(ephemeralContainers):
+              - securityContext:
+                  allowPrivilegeEscalation: false
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-run-as-nonroot
+  annotations:
+    policies.kyverno.io/title: Require Run As Non-Root
+    policies.kyverno.io/category: Pod Security Standards (Restricted)
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Containers must run as a non-root user. This policy ensures that
+      runAsNonRoot is set to true.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: run-as-non-root
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: >-
+          Containers must run as non-root. Set runAsNonRoot to true.
+        anyPattern:
+          - spec:
+              securityContext:
+                runAsNonRoot: true
+              containers:
+                - =(securityContext):
+                    =(runAsNonRoot): true
+          - spec:
+              containers:
+                - securityContext:
+                    runAsNonRoot: true
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-host-namespaces
+  annotations:
+    policies.kyverno.io/title: Disallow Host Namespaces
+    policies.kyverno.io/category: Pod Security Standards (Baseline)
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Host namespaces (hostPID, hostIPC, hostNetwork) allow bypassing
+      container isolation. This policy ensures they are disabled.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: host-namespaces
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: >-
+          Sharing host namespaces is disallowed. Set hostPID, hostIPC, and
+          hostNetwork to false.
+        pattern:
+          spec:
+            =(hostPID): false
+            =(hostIPC): false
+            =(hostNetwork): false
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-host-path
+  annotations:
+    policies.kyverno.io/title: Disallow Host Path Volumes
+    policies.kyverno.io/category: Pod Security Standards (Baseline)
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod, Volume
+    policies.kyverno.io/description: >-
+      HostPath volumes allow access to the node filesystem and pose a
+      security risk. This policy prevents their usage.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: host-path
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: >-
+          HostPath volumes are disallowed. Use PersistentVolumes instead.
+        pattern:
+          spec:
+            =(volumes):
+              - X(hostPath): "null"
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-host-ports
+  annotations:
+    policies.kyverno.io/title: Disallow Host Ports
+    policies.kyverno.io/category: Pod Security Standards (Baseline)
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Host ports bypass network policies and should not be used.
+      This policy ensures no host ports are defined.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: host-ports-none
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: >-
+          Host ports are disallowed. Remove hostPort from container specs.
+        pattern:
+          spec:
+            containers:
+              - =(ports):
+                  - =(hostPort): "null"
+            =(initContainers):
+              - =(ports):
+                  - =(hostPort): "null"
+            =(ephemeralContainers):
+              - =(ports):
+                  - =(hostPort): "null"
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-drop-cap-net-raw
+  annotations:
+    policies.kyverno.io/title: Require Drop NET_RAW Capability
+    policies.kyverno.io/category: Pod Security Standards (Baseline)
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      The NET_RAW capability allows packet manipulation and should be dropped.
+      This policy ensures NET_RAW is dropped for all containers.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-drop-net-raw
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: >-
+          Containers must drop NET_RAW capability. Add NET_RAW to
+          securityContext.capabilities.drop.
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  capabilities:
+                    drop:
+                      - NET_RAW
+            =(initContainers):
+              - securityContext:
+                  capabilities:
+                    drop:
+                      - NET_RAW
+            =(ephemeralContainers):
+              - securityContext:
+                  capabilities:
+                    drop:
+                      - NET_RAW
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-capabilities
+  annotations:
+    policies.kyverno.io/title: Disallow Added Capabilities
+    policies.kyverno.io/category: Pod Security Standards (Restricted)
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Adding capabilities beyond the default set increases the attack surface.
+      Only NET_BIND_SERVICE may be added.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: allowed-capabilities
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: >-
+          Adding capabilities is restricted. Only NET_BIND_SERVICE may be added.
+        deny:
+          conditions:
+            all:
+              - key: "{{ request.object.spec.containers[].securityContext.capabilities.add[] }}"
+                operator: AnyNotIn
+                value:
+                  - NET_BIND_SERVICE
+                  - ""
+
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: restrict-seccomp-profiles
+  annotations:
+    policies.kyverno.io/title: Restrict Seccomp Profiles
+    policies.kyverno.io/category: Pod Security Standards (Restricted)
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Seccomp profile must be RuntimeDefault or Localhost. Unconfined
+      profiles are not allowed.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: check-seccomp
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: >-
+          Seccomp profile must be RuntimeDefault or Localhost.
+          Unconfined profiles are not allowed.
+        anyPattern:
+          - spec:
+              securityContext:
+                seccompProfile:
+                  type: RuntimeDefault | Localhost
+          - spec:
+              containers:
+                - securityContext:
+                    seccompProfile:
+                      type: RuntimeDefault | Localhost

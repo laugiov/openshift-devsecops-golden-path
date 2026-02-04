@@ -1,4 +1,4 @@
-# {{SERVICE_NAME}} Dockerfile
+# __SERVICE_NAME__ Dockerfile
 # Multi-stage build for minimal production image
 
 # Build stage
@@ -35,10 +35,10 @@ USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:{{SERVICE_PORT}}/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:__SERVICE_PORT__/health || exit 1
 
 # Expose port
-EXPOSE {{SERVICE_PORT}}
+EXPOSE __SERVICE_PORT__
 
 # Start application
 CMD ["node", "src/index.js"]

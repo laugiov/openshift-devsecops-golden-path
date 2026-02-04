@@ -1,10 +1,11 @@
-# Default values for {{SERVICE_NAME}}
+# Default values for __SERVICE_NAME__
 # This is a YAML-formatted file.
+# Placeholders (__VAR__) are replaced by bootstrap-service.sh
 
 replicaCount: 1
 
 image:
-  repository: {{REGISTRY_URL}}/{{SERVICE_NAME}}
+  repository: __REGISTRY_URL__/__SERVICE_NAME__
   tag: "latest"
   digest: ""
   pullPolicy: IfNotPresent
@@ -35,14 +36,14 @@ securityContext:
 
 service:
   type: ClusterIP
-  port: {{SERVICE_PORT}}
+  port: __SERVICE_PORT__
 
 ingress:
   enabled: false
   className: nginx
   annotations: {}
   hosts:
-    - host: {{SERVICE_NAME}}.local
+    - host: __SERVICE_NAME__.local
       paths:
         - path: /
           pathType: Prefix

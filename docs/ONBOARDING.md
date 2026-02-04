@@ -178,7 +178,7 @@ Copy the template and customize:
 
 ```bash
 cp -r templates/service-template/helm gitops/apps/my-service
-# Edit files to replace {{SERVICE_NAME}} placeholders
+# Edit files to replace __SERVICE_NAME__ placeholders
 ```
 
 ### Step 4: Create Environment Values

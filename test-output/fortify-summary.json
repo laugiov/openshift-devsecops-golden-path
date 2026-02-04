@@ -1,0 +1,19 @@
+{
+  "scanner": "fortify",
+  "timestamp": "2026-02-04T17:38:39Z",
+  "project": "unknown",
+  "version": "unknown",
+  "findings": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "total": 1
+  },
+  "threshold": {
+    "failOnCritical": true,
+    "failOnHigh": false,
+    "severityThreshold": "Low"
+  },
+  "reportFile": "sast-fortify.sarif.json"
+}

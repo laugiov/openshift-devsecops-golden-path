@@ -1,0 +1,256 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Checkmarx SAST",
+          "version": "9.5.0",
+          "semanticVersion": "9.5.0",
+          "informationUri": "https://checkmarx.com/product/cxsast-source-code-scanning/",
+          "rules": [
+            {
+              "id": "CWE-89",
+              "name": "SQL Injection",
+              "shortDescription": {
+                "text": "SQL Injection vulnerability"
+              },
+              "fullDescription": {
+                "text": "The software constructs all or part of an SQL command using externally-influenced input from an upstream component, but it does not neutralize or incorrectly neutralizes special elements that could modify the intended SQL command."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "security-severity": "9.8",
+                "precision": "high",
+                "tags": ["security", "sql", "injection", "owasp-a03"]
+              }
+            },
+            {
+              "id": "CWE-78",
+              "name": "OS Command Injection",
+              "shortDescription": {
+                "text": "Command Injection vulnerability"
+              },
+              "fullDescription": {
+                "text": "The software constructs all or part of an OS command using externally-influenced input from an upstream component, but it does not neutralize or incorrectly neutralizes special elements that could modify the intended OS command."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "security-severity": "9.8",
+                "precision": "high",
+                "tags": ["security", "command", "injection", "owasp-a03"]
+              }
+            },
+            {
+              "id": "CWE-502",
+              "name": "Deserialization of Untrusted Data",
+              "shortDescription": {
+                "text": "Unsafe deserialization detected"
+              },
+              "fullDescription": {
+                "text": "The application deserializes untrusted data without sufficiently verifying that the resulting data will be valid."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "security-severity": "8.1",
+                "precision": "medium",
+                "tags": ["security", "deserialization", "owasp-a08"]
+              }
+            },
+            {
+              "id": "CWE-611",
+              "name": "Improper Restriction of XML External Entity Reference",
+              "shortDescription": {
+                "text": "XXE vulnerability detected"
+              },
+              "fullDescription": {
+                "text": "The software processes an XML document that can contain XML entities with URIs that resolve to documents outside of the intended sphere of control."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "security-severity": "7.5",
+                "precision": "high",
+                "tags": ["security", "xxe", "xml", "owasp-a05"]
+              }
+            }
+          ]
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "endTimeUtc": "2024-01-15T14:45:00Z"
+        }
+      ],
+      "results": [
+        {
+          "ruleId": "CWE-502",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "The application deserializes untrusted JSON data from request body without validation in ApiController.java"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/main/java/com/example/controller/ApiController.java",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 56,
+                  "startColumn": 16,
+                  "endLine": 56,
+                  "endColumn": 78
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "processData",
+                  "kind": "function",
+                  "fullyQualifiedName": "com.example.controller.ApiController.processData"
+                }
+              ]
+            }
+          ],
+          "fingerprints": {
+            "checkmarxSimilarityId": "1234567890"
+          },
+          "codeFlows": [
+            {
+              "threadFlows": [
+                {
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "src/main/java/com/example/controller/ApiController.java"
+                          },
+                          "region": {
+                            "startLine": 54
+                          }
+                        },
+                        "message": {
+                          "text": "request.getInputStream() : ServletInputStream"
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "src/main/java/com/example/controller/ApiController.java"
+                          },
+                          "region": {
+                            "startLine": 56
+                          }
+                        },
+                        "message": {
+                          "text": "objectMapper.readValue(input, Object.class)"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "checkmarx-query": "Deserialization_of_Untrusted_Data",
+            "checkmarx-query-id": "12345",
+            "checkmarx-severity": "High",
+            "checkmarx-state": "To Verify",
+            "checkmarx-result-id": "98765432",
+            "checkmarx-similarity-id": "1234567890"
+          }
+        },
+        {
+          "ruleId": "CWE-611",
+          "ruleIndex": 3,
+          "level": "error",
+          "message": {
+            "text": "XML parser is configured to allow external entities in XmlProcessor.java"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/main/java/com/example/util/XmlProcessor.java",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 34,
+                  "startColumn": 8
+                }
+              }
+            }
+          ],
+          "properties": {
+            "checkmarx-query": "XXE_Injection",
+            "checkmarx-severity": "Medium",
+            "checkmarx-state": "To Verify",
+            "checkmarx-result-id": "98765433"
+          }
+        },
+        {
+          "ruleId": "CWE-89",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "User input is concatenated into SQL query string in UserRepository.java"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/main/java/com/example/repository/UserRepository.java",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 89,
+                  "startColumn": 24
+                }
+              }
+            }
+          ],
+          "properties": {
+            "checkmarx-query": "SQL_Injection",
+            "checkmarx-severity": "Low",
+            "checkmarx-state": "Not Exploitable",
+            "checkmarx-result-id": "98765434",
+            "checkmarx-comment": "Input is validated by upstream filter"
+          }
+        }
+      ],
+      "properties": {
+        "projectName": "demo-service",
+        "projectId": "12345",
+        "scanId": "67890",
+        "branch": "main",
+        "preset": "Checkmarx Default",
+        "engineVersion": "9.5.0",
+        "summary": {
+          "critical": 0,
+          "high": 1,
+          "medium": 1,
+          "low": 1,
+          "total": 3,
+          "newFindings": 1,
+          "recurringFindings": 2
+        },
+        "scanDuration": "PT5M32S",
+        "linesOfCode": 15420
+      }
+    }
+  ]
+}

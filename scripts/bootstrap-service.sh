@@ -120,17 +120,18 @@ replace_placeholders() {
     local service_name="$2"
 
     sed -i.bak \
-        -e "s|{{SERVICE_NAME}}|${service_name}|g" \
-        -e "s|{{SERVICE_PORT}}|${SERVICE_PORT}|g" \
-        -e "s|{{REGISTRY_URL}}|${REGISTRY_URL}|g" \
-        -e "s|{{GITOPS_REPO}}|${GITOPS_REPO}|g" \
-        -e "s|{{BUILD_TOOL}}|${BUILD_TOOL}|g" \
-        -e "s|{{TEAM_NAME}}|${TEAM_NAME}|g" \
-        -e "s|{{TEAM_EMAIL}}|${TEAM_EMAIL}|g" \
-        -e "s|{{SERVICE_DESCRIPTION}}|${SERVICE_DESCRIPTION}|g" \
-        -e "s|{{SONARQUBE_ENABLED}}|${SONARQUBE_ENABLED}|g" \
-        -e "s|{{SONAR_PROJECT_KEY}}|${SONAR_PROJECT_KEY}|g" \
-        -e "s|{{SLACK_CHANNEL}}|${SLACK_CHANNEL}|g" \
+        -e "s|__SERVICE_NAME__|${service_name}|g" \
+        -e "s|__SERVICE_PORT__|${SERVICE_PORT}|g" \
+        -e "s|__REGISTRY_URL__|${REGISTRY_URL}|g" \
+        -e "s|__GITOPS_REPO__|${GITOPS_REPO}|g" \
+        -e "s|__BUILD_TOOL__|${BUILD_TOOL}|g" \
+        -e "s|__TEAM_NAME__|${TEAM_NAME}|g" \
+        -e "s|__TEAM_EMAIL__|${TEAM_EMAIL}|g" \
+        -e "s|__SERVICE_DESCRIPTION__|${SERVICE_DESCRIPTION}|g" \
+        -e "s|__SONARQUBE_ENABLED__|${SONARQUBE_ENABLED}|g" \
+        -e "s|__SONAR_PROJECT_KEY__|${SONAR_PROJECT_KEY}|g" \
+        -e "s|__SLACK_CHANNEL__|${SLACK_CHANNEL}|g" \
+        -e "s|service-template|${service_name}|g" \
         "$file"
 
     rm -f "${file}.bak"

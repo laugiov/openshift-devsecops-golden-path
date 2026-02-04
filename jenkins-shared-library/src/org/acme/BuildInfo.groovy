@@ -36,13 +36,17 @@ class BuildInfo implements Serializable {
     String status = 'UNKNOWN'
     Map<String, Object> stageResults = [:]
 
+    private static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+
     /**
      * Record stage result
      */
     void recordStage(String stageName, String status, Map<String, Object> details = [:]) {
+        def sdf = new java.text.SimpleDateFormat(DATE_FORMAT)
+        sdf.setTimeZone(TimeZone.getTimeZone('UTC'))
         stageResults[stageName] = [
             status: status,
-            timestamp: new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'"),
+            timestamp: sdf.format(new Date()),
             details: details
         ]
     }
@@ -54,13 +58,15 @@ class BuildInfo implements Serializable {
         if (!startTime || !endTime) return 'unknown'
 
         try {
-            def start = Date.parse("yyyy-MM-dd'T'HH:mm:ss'Z'", startTime)
-            def end = Date.parse("yyyy-MM-dd'T'HH:mm:ss'Z'", endTime)
+            def sdf = new java.text.SimpleDateFormat(DATE_FORMAT)
+            sdf.setTimeZone(TimeZone.getTimeZone('UTC'))
+            def start = sdf.parse(startTime)
+            def end = sdf.parse(endTime)
             def durationMs = end.time - start.time
 
-            def seconds = (durationMs / 1000) % 60
-            def minutes = (durationMs / (1000 * 60)) % 60
-            def hours = (durationMs / (1000 * 60 * 60))
+            def seconds = ((durationMs / 1000) % 60) as int
+            def minutes = ((durationMs / (1000 * 60)) % 60) as int
+            def hours = ((durationMs / (1000 * 60 * 60))) as int
 
             if (hours > 0) {
                 return "${hours}h ${minutes}m ${seconds}s"

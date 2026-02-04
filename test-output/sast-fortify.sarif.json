@@ -1,0 +1,121 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Fortify Static Code Analyzer",
+          "version": "23.1.0",
+          "informationUri": "https://www.microfocus.com/en-us/cyberres/application-security/static-code-analyzer",
+          "rules": [
+            {
+              "id": "SQL_Injection",
+              "name": "SQL Injection",
+              "shortDescription": {
+                "text": "SQL Injection vulnerability detected"
+              },
+              "fullDescription": {
+                "text": "The application constructs SQL statements from user-controlled input without proper sanitization."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "security-severity": "9.8",
+                "precision": "high",
+                "tags": ["security", "cwe-89", "owasp-a03"]
+              }
+            },
+            {
+              "id": "XSS_Reflected",
+              "name": "Cross-Site Scripting: Reflected",
+              "shortDescription": {
+                "text": "Reflected XSS vulnerability detected"
+              },
+              "fullDescription": {
+                "text": "User input is reflected in the output without proper encoding."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "security-severity": "6.1",
+                "precision": "high",
+                "tags": ["security", "cwe-79", "owasp-a03"]
+              }
+            },
+            {
+              "id": "Path_Manipulation",
+              "name": "Path Manipulation",
+              "shortDescription": {
+                "text": "Path manipulation vulnerability"
+              },
+              "fullDescription": {
+                "text": "User input is used to construct a file path without validation."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "security-severity": "7.5",
+                "precision": "medium",
+                "tags": ["security", "cwe-22", "owasp-a01"]
+              }
+            }
+          ]
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "endTimeUtc": "2026-02-04T17:38:39Z"
+        }
+      ],
+      "results": [
+        {
+          "ruleId": "XSS_Reflected",
+          "level": "error",
+          "message": {
+            "text": "[MOCK] User input from 'req.query.search' is used in response without encoding"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/routes/search.js",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 45,
+                  "startColumn": 12
+                }
+              }
+            }
+          ],
+          "properties": {
+            "fortify-category": "Cross-Site Scripting: Reflected",
+            "fortify-kingdom": "Input Validation and Representation",
+            "fortify-severity": "High",
+            "fortify-confidence": "5.0",
+            "fortify-instance-id": "ABCD1234"
+          }
+        }
+      ],
+      "properties": {
+        "projectName": "demo-service",
+        "projectVersion": "1.0.0",
+        "branch": "main",
+        "scanType": "SAST",
+        "scanMode": "MOCK",
+        "summary": {
+          "critical": 0,
+          "high": 1,
+          "medium": 0,
+          "low": 0,
+          "total": 1
+        }
+      }
+    }
+  ]
+}

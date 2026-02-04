@@ -1,0 +1,191 @@
+# Pipeline Alerting Rules
+#
+# Import into Prometheus/AlertManager for CI/CD observability
+#
+# Usage with Prometheus Operator:
+#   kubectl apply -f pipeline-alerts.yaml
+#
+# Usage with vanilla Prometheus:
+#   Add to prometheus.yml under rule_files
+
+groups:
+- name: pipeline-slos
+  rules:
+  # Pipeline Success Rate SLO
+  - alert: PipelineSuccessRateLow
+    expr: |
+      (
+        sum(increase(ci_pipeline_status{status="success"}[24h]))
+        /
+        sum(increase(ci_pipeline_status[24h]))
+      ) < 0.95
+    for: 1h
+    labels:
+      severity: warning
+      slo: pipeline-success-rate
+    annotations:
+      summary: "Pipeline success rate below 95%"
+      description: "Pipeline success rate is {{ $value | humanizePercentage }} over the last 24 hours"
+      runbook_url: "https://wiki.example.com/runbooks/pipeline-success-rate"
+
+  - alert: PipelineSuccessRateCritical
+    expr: |
+      (
+        sum(increase(ci_pipeline_status{status="success"}[24h]))
+        /
+        sum(increase(ci_pipeline_status[24h]))
+      ) < 0.90
+    for: 30m
+    labels:
+      severity: critical
+      slo: pipeline-success-rate
+    annotations:
+      summary: "Pipeline success rate critically low"
+      description: "Pipeline success rate is {{ $value | humanizePercentage }}, below 90% threshold"
+
+  # Pipeline Duration SLO
+  - alert: PipelineDurationHigh
+    expr: |
+      histogram_quantile(0.95,
+        sum(rate(ci_pipeline_duration_seconds_bucket[1h])) by (le, app)
+      ) > 900
+    for: 30m
+    labels:
+      severity: warning
+      slo: pipeline-duration
+    annotations:
+      summary: "Pipeline P95 duration exceeds 15 minutes"
+      description: "App {{ $labels.app }} P95 duration is {{ $value | humanizeDuration }}"
+
+  - alert: PipelineDurationCritical
+    expr: |
+      histogram_quantile(0.99,
+        sum(rate(ci_pipeline_duration_seconds_bucket[1h])) by (le, app)
+      ) > 1800
+    for: 15m
+    labels:
+      severity: critical
+      slo: pipeline-duration
+    annotations:
+      summary: "Pipeline P99 duration exceeds 30 minutes"
+      description: "App {{ $labels.app }} P99 duration is {{ $value | humanizeDuration }}"
+
+- name: pipeline-security
+  rules:
+  # Security Findings
+  - alert: SecurityFindingsCritical
+    expr: ci_security_findings{severity="critical"} > 0
+    for: 0m
+    labels:
+      severity: critical
+      category: security
+    annotations:
+      summary: "Critical security findings detected"
+      description: "{{ $value }} critical findings in {{ $labels.app }} ({{ $labels.type }})"
+
+  - alert: SecurityFindingsHigh
+    expr: ci_security_findings{severity="high"} > 5
+    for: 1h
+    labels:
+      severity: warning
+      category: security
+    annotations:
+      summary: "High number of high-severity findings"
+      description: "{{ $value }} high findings in {{ $labels.app }} ({{ $labels.type }})"
+
+  - alert: SecretsDetected
+    expr: ci_security_findings_total{type="secrets"} > 0
+    for: 0m
+    labels:
+      severity: critical
+      category: security
+    annotations:
+      summary: "Secrets detected in codebase"
+      description: "{{ $value }} secrets found in {{ $labels.app }}"
+
+- name: pipeline-operations
+  rules:
+  # Pipeline Health
+  - alert: NoPipelineBuilds
+    expr: |
+      absent(ci_pipeline_status) or
+      sum(increase(ci_pipeline_status[6h])) == 0
+    for: 6h
+    labels:
+      severity: warning
+      category: operations
+    annotations:
+      summary: "No pipeline builds in 6 hours"
+      description: "No builds detected. Check CI infrastructure."
+
+  - alert: PipelineQueueBacklog
+    expr: ci_pipeline_queue_length > 10
+    for: 15m
+    labels:
+      severity: warning
+      category: operations
+    annotations:
+      summary: "Pipeline queue backlog"
+      description: "{{ $value }} builds in queue"
+
+  # Stage Failures
+  - alert: SecurityScanFailureRate
+    expr: |
+      (
+        sum(increase(ci_stage_status{stage=~"security.*",status="failed"}[24h]))
+        /
+        sum(increase(ci_stage_status{stage=~"security.*"}[24h]))
+      ) > 0.10
+    for: 1h
+    labels:
+      severity: warning
+      category: operations
+    annotations:
+      summary: "High security scan failure rate"
+      description: "Security scan failure rate is {{ $value | humanizePercentage }}"
+
+- name: dora-metrics
+  rules:
+  # DORA: Deployment Frequency
+  - record: dora:deployment_frequency:daily
+    expr: |
+      sum(increase(ci_pipeline_status{status="success",branch="main"}[24h]))
+    labels:
+      metric: deployment_frequency
+
+  # DORA: Lead Time for Changes
+  - record: dora:lead_time:avg
+    expr: |
+      avg(ci_pipeline_duration_seconds{branch="main"})
+    labels:
+      metric: lead_time
+
+  # DORA: Change Failure Rate
+  - record: dora:change_failure_rate
+    expr: |
+      sum(increase(ci_pipeline_status{status="failed",branch="main"}[7d]))
+      /
+      sum(increase(ci_pipeline_status{branch="main"}[7d]))
+    labels:
+      metric: change_failure_rate
+
+  # Alert on DORA degradation
+  - alert: ChangeFailureRateHigh
+    expr: dora:change_failure_rate > 0.15
+    for: 1d
+    labels:
+      severity: warning
+      category: dora
+    annotations:
+      summary: "Change failure rate exceeds 15%"
+      description: "Change failure rate is {{ $value | humanizePercentage }} over the last 7 days"
+
+  - alert: DeploymentFrequencyLow
+    expr: dora:deployment_frequency:daily < 1
+    for: 2d
+    labels:
+      severity: info
+      category: dora
+    annotations:
+      summary: "Low deployment frequency"
+      description: "Less than 1 deployment per day"

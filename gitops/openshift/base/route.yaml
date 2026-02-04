@@ -1,0 +1,38 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: demo-service
+  namespace: demo-service
+  labels:
+    app.kubernetes.io/name: demo-service
+  annotations:
+    # Disable HAProxy buffering for streaming
+    haproxy.router.openshift.io/disable_cookies: "true"
+    # Rate limiting (optional)
+    haproxy.router.openshift.io/rate-limit-connections: "true"
+    haproxy.router.openshift.io/rate-limit-connections.rate-http: "100"
+spec:
+  # Leave host empty for auto-generated hostname
+  # Format: <route-name>-<namespace>.apps.<cluster-domain>
+  # host: demo-service.apps.cluster.example.com
+
+  path: /
+
+  to:
+    kind: Service
+    name: demo-service
+    weight: 100
+
+  port:
+    targetPort: http
+
+  # TLS configuration
+  tls:
+    # Edge termination - TLS terminates at router
+    termination: edge
+    # Redirect HTTP to HTTPS
+    insecureEdgeTerminationPolicy: Redirect
+    # For custom certificates, add certificate, key, and caCertificate fields
+    # See: https://docs.openshift.com/container-platform/latest/networking/routes/secured-routes.html
+
+  wildcardPolicy: None

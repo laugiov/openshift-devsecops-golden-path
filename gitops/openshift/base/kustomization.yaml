@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: demo-service-openshift
+
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - deployment.yaml
+  - service.yaml
+  - route.yaml
+
+commonLabels:
+  app.kubernetes.io/name: demo-service
+  app.kubernetes.io/managed-by: golden-path
+  app.kubernetes.io/part-of: golden-path-demo
+
+configMapGenerator:
+  - name: demo-service-config
+    literals:
+      - LOG_LEVEL=info
+      - NODE_ENV=production

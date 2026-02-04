@@ -1,0 +1,62 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: demo-service-qa
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: qa
+
+patches:
+  # QA replicas
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      name: demo-service
+
+  # Update namespace in all resources
+  - patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: demo-service-qa
+    target:
+      kind: Deployment
+      name: demo-service
+  - patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: demo-service-qa
+    target:
+      kind: Service
+      name: demo-service
+  - patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: demo-service-qa
+    target:
+      kind: Route
+      name: demo-service
+  - patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: demo-service-qa
+    target:
+      kind: ServiceAccount
+      name: demo-service
+
+configMapGenerator:
+  - name: demo-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=info
+      - NODE_ENV=staging
+
+images:
+  - name: registry.example.com/demo-service
+    newName: registry.example.com/demo-service
+    digest: sha256:placeholder-qa

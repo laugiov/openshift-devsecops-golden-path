@@ -1,0 +1,255 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Fortify Static Code Analyzer",
+          "version": "23.1.0",
+          "semanticVersion": "23.1.0",
+          "informationUri": "https://www.microfocus.com/en-us/cyberres/application-security/static-code-analyzer",
+          "rules": [
+            {
+              "id": "SQL_Injection",
+              "name": "SQL Injection",
+              "shortDescription": {
+                "text": "SQL Injection vulnerability detected"
+              },
+              "fullDescription": {
+                "text": "The method executes an SQL query built using input from an untrusted source. This call could allow an attacker to modify the statement's meaning or to execute arbitrary SQL commands."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "security-severity": "9.8",
+                "precision": "high",
+                "tags": ["security", "cwe-89", "owasp-a03", "sql-injection"]
+              }
+            },
+            {
+              "id": "XSS_Reflected",
+              "name": "Cross-Site Scripting: Reflected",
+              "shortDescription": {
+                "text": "Reflected XSS vulnerability detected"
+              },
+              "fullDescription": {
+                "text": "The application's web page returns malicious content that is obtained from user input. Reflected XSS occurs when user-supplied data is immediately returned by a web application in an error message, search result, or any other response."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "security-severity": "6.1",
+                "precision": "high",
+                "tags": ["security", "cwe-79", "owasp-a03", "xss"]
+              }
+            },
+            {
+              "id": "Path_Manipulation",
+              "name": "Path Manipulation",
+              "shortDescription": {
+                "text": "Path manipulation vulnerability"
+              },
+              "fullDescription": {
+                "text": "Attackers can control the filesystem path argument which allows them to access or modify otherwise protected files."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "security-severity": "7.5",
+                "precision": "medium",
+                "tags": ["security", "cwe-22", "owasp-a01", "path-traversal"]
+              }
+            },
+            {
+              "id": "Insecure_Randomness",
+              "name": "Insecure Randomness",
+              "shortDescription": {
+                "text": "Insecure random number generator"
+              },
+              "fullDescription": {
+                "text": "Standard pseudo-random number generators cannot withstand cryptographic attacks."
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "security-severity": "3.7",
+                "precision": "medium",
+                "tags": ["security", "cwe-330", "cryptography"]
+              }
+            }
+          ]
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "commandLine": "sourceanalyzer -b demo-service -scan",
+          "endTimeUtc": "2024-01-15T14:30:00Z"
+        }
+      ],
+      "results": [
+        {
+          "ruleId": "XSS_Reflected",
+          "ruleIndex": 1,
+          "level": "error",
+          "message": {
+            "text": "User input from 'request.getParameter(\"search\")' is written to HTML output without proper encoding in SearchController.java:45"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/main/java/com/example/controller/SearchController.java",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 45,
+                  "startColumn": 12,
+                  "endLine": 45,
+                  "endColumn": 67
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "search",
+                  "kind": "function",
+                  "fullyQualifiedName": "com.example.controller.SearchController.search"
+                }
+              ]
+            }
+          ],
+          "fingerprints": {
+            "fortifyInstanceId": "ABCD1234-5678-90AB-CDEF-1234567890AB"
+          },
+          "codeFlows": [
+            {
+              "threadFlows": [
+                {
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "src/main/java/com/example/controller/SearchController.java"
+                          },
+                          "region": {
+                            "startLine": 42
+                          }
+                        },
+                        "message": {
+                          "text": "request.getParameter(\"search\") : String"
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "src/main/java/com/example/controller/SearchController.java"
+                          },
+                          "region": {
+                            "startLine": 45
+                          }
+                        },
+                        "message": {
+                          "text": "response.getWriter().write(searchTerm)"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "fortify-category": "Cross-Site Scripting: Reflected",
+            "fortify-kingdom": "Input Validation and Representation",
+            "fortify-severity": "High",
+            "fortify-confidence": "5.0",
+            "fortify-priority": "Critical",
+            "fortify-instance-id": "ABCD1234"
+          }
+        },
+        {
+          "ruleId": "Path_Manipulation",
+          "ruleIndex": 2,
+          "level": "warning",
+          "message": {
+            "text": "User-controlled file path in FileService.java may allow access to unauthorized files"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/main/java/com/example/service/FileService.java",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 78,
+                  "startColumn": 20
+                }
+              }
+            }
+          ],
+          "properties": {
+            "fortify-category": "Path Manipulation",
+            "fortify-kingdom": "Input Validation and Representation",
+            "fortify-severity": "Medium",
+            "fortify-confidence": "4.0",
+            "fortify-instance-id": "EFGH5678"
+          }
+        },
+        {
+          "ruleId": "Insecure_Randomness",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "java.util.Random used for security-sensitive operation in TokenGenerator.java"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/main/java/com/example/util/TokenGenerator.java",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 23,
+                  "startColumn": 8
+                }
+              }
+            }
+          ],
+          "properties": {
+            "fortify-category": "Insecure Randomness",
+            "fortify-kingdom": "Security Features",
+            "fortify-severity": "Low",
+            "fortify-confidence": "3.5",
+            "fortify-instance-id": "IJKL9012"
+          }
+        }
+      ],
+      "properties": {
+        "projectName": "demo-service",
+        "projectVersion": "1.0.0",
+        "branch": "main",
+        "buildId": "12345",
+        "scanType": "SAST",
+        "engineVersion": "23.1.0.0060",
+        "rulesVersion": "2023.4.0.0018",
+        "summary": {
+          "critical": 0,
+          "high": 1,
+          "medium": 1,
+          "low": 1,
+          "total": 3
+        }
+      }
+    }
+  ]
+}

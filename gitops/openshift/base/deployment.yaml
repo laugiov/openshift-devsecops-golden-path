@@ -1,0 +1,149 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-service
+  namespace: demo-service
+  labels:
+    app.kubernetes.io/name: demo-service
+    app.kubernetes.io/version: "1.0.0"
+  annotations:
+    # Force rolling update on config change
+    configmap.reloader.stakater.com/reload: "demo-service-config"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: demo-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: demo-service
+      annotations:
+        # Prometheus scraping (if enabled)
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: demo-service
+
+      # OpenShift-compatible security context
+      # Compatible with 'restricted' SCC (most secure)
+      securityContext:
+        # REQUIRED: Must run as non-root
+        runAsNonRoot: true
+        # REQUIRED for restricted-v2 SCC
+        seccompProfile:
+          type: RuntimeDefault
+        # DO NOT set runAsUser/runAsGroup - OpenShift assigns arbitrary UID
+
+      containers:
+        - name: demo-service
+          # Use digest for immutability (updated by GitOps)
+          image: registry.example.com/demo-service@sha256:placeholder
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+
+          # Container-level security context
+          securityContext:
+            # REQUIRED: Prevent privilege escalation
+            allowPrivilegeEscalation: false
+            # REQUIRED: Read-only root filesystem
+            readOnlyRootFilesystem: true
+            # REQUIRED: Drop all capabilities
+            capabilities:
+              drop:
+                - ALL
+            # DO NOT set runAsUser - let OpenShift assign
+
+          # Resource limits (required for OpenShift quota)
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          # Health probes
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # Environment from ConfigMap
+          envFrom:
+            - configMapRef:
+                name: demo-service-config
+
+          env:
+            - name: PORT
+              value: "3000"
+            - name: NODE_ENV
+              value: production
+            # Inject pod info
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+
+          # Volume mounts for writable directories
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /app/.cache
+
+      # Volumes for writable directories (since rootFS is read-only)
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+        - name: cache
+          emptyDir:
+            sizeLimit: 50Mi
+
+      # Topology spread for HA across zones
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: demo-service
+
+      # Affinity to spread across nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: demo-service
+                topologyKey: kubernetes.io/hostname

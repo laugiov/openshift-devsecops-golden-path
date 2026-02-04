@@ -1,0 +1,39 @@
+# Java Demo Service Configuration
+# Golden Path Example
+
+server:
+  port: 8080
+  shutdown: graceful
+
+spring:
+  application:
+    name: java-demo-service
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+# Actuator endpoints for health/metrics
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    export:
+      prometheus:
+        enabled: true
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.acme: DEBUG
+  pattern:
+    console: "%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n"

@@ -1,16 +1,16 @@
 @Library('golden-path@main') _
 
-// {{SERVICE_NAME}} Pipeline
+// __SERVICE_NAME__ Pipeline
 // Generated from Golden Path template
 // See: docs/ONBOARDING.md for customization options
 
 goldenPipeline(
     // Required parameters
-    appName: '{{SERVICE_NAME}}',
-    buildTool: '{{BUILD_TOOL}}',           // 'node', 'maven', 'gradle', 'python'
+    appName: '__SERVICE_NAME__',
+    buildTool: '__BUILD_TOOL__',           // 'node', 'maven', 'gradle', 'python'
 
     // Registry configuration
-    registry: env.REGISTRY_URL ?: '{{REGISTRY_URL}}',
+    registry: env.REGISTRY_URL ?: '__REGISTRY_URL__',
 
     // Security scanning - all enabled by default
     enableSast: true,
@@ -20,7 +20,7 @@ goldenPipeline(
 
     // Quality gate
     sonarqubeServer: 'SonarQube',
-    sonarqubeQualityGate: {{SONARQUBE_ENABLED}},
+    sonarqubeQualityGate: __SONARQUBE_ENABLED__,
 
     // Supply chain security
     enableSbom: true,
@@ -29,7 +29,7 @@ goldenPipeline(
 
     // GitOps promotion
     enableGitOps: true,
-    gitopsRepo: '{{GITOPS_REPO}}',
+    gitopsRepo: '__GITOPS_REPO__',
     targetEnv: 'dev',
 
     // Build configuration
@@ -37,5 +37,5 @@ goldenPipeline(
     buildContext: '.'
 
     // Slack notifications (uncomment to enable)
-    // slackChannel: '{{SLACK_CHANNEL}}'
+    // slackChannel: '__SLACK_CHANNEL__'
 )

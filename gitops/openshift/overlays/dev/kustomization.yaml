@@ -1,0 +1,68 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: demo-service-dev
+
+resources:
+  - ../../base
+
+namePrefix: ""
+nameSuffix: ""
+
+commonLabels:
+  environment: dev
+
+# Patches for dev environment
+patches:
+  # Reduce replicas in dev
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: demo-service
+
+  # Update namespace in all resources
+  - patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: demo-service-dev
+    target:
+      kind: Deployment
+      name: demo-service
+  - patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: demo-service-dev
+    target:
+      kind: Service
+      name: demo-service
+  - patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: demo-service-dev
+    target:
+      kind: Route
+      name: demo-service
+  - patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: demo-service-dev
+    target:
+      kind: ServiceAccount
+      name: demo-service
+
+# Dev-specific config
+configMapGenerator:
+  - name: demo-service-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=debug
+      - NODE_ENV=development
+
+# Image reference (updated by GitOps pipeline)
+images:
+  - name: registry.example.com/demo-service
+    newName: registry.example.com/demo-service
+    digest: sha256:placeholder-dev
