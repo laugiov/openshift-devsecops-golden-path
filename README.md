@@ -1,7 +1,7 @@
 # OpenShift DevSecOps Golden Path
 
-[![CI](https://github.com/OWNER/openshift-devsecops-golden-path/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/openshift-devsecops-golden-path/actions/workflows/ci.yml)
-[![Security Scan](https://img.shields.io/badge/security-scanned-green.svg)](https://github.com/OWNER/openshift-devsecops-golden-path/actions)
+[![CI](https://github.com/laugiov/openshift-devsecops-golden-path/actions/workflows/ci.yml/badge.svg)](https://github.com/laugiov/openshift-devsecops-golden-path/actions/workflows/ci.yml)
+[![Security Scan](https://img.shields.io/badge/security-scanned-green.svg)](https://github.com/laugiov/openshift-devsecops-golden-path/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A battle-tested CI/CD standardization framework for regulated environments. Built from lessons learned deploying pipelines in payment processing, fintech, and healthcare organizations where audit failures cost millions and security incidents end careers.
@@ -10,7 +10,7 @@ A battle-tested CI/CD standardization framework for regulated environments. Buil
 
 ---
 
-## TL;DR for CTOs
+## Executive Summary
 
 **The problem:** Every team builds their own pipeline. Quality varies. Security is inconsistent. Auditors ask questions nobody can answer. Incidents reveal gaps that "should have been caught."
 
@@ -373,18 +373,6 @@ For environments without internet access:
 - Use keyed Cosign signing (not keyless)
 - Mirror Trivy DB internally
 - Self-host SonarQube rules
-
----
-
-## What This Proves About the Author
-
-This repository demonstrates:
-
-1. **I've done this before.** The failure modes section comes from real incidents.
-2. **I understand compliance.** PCI-DSS mapping isn't theoretical; it's from audits survived.
-3. **I make decisions and defend them.** "What we don't do" shows conviction.
-4. **I think about operations.** Metrics, rollback, resilience matter.
-5. **I can standardize without blocking.** Golden path + exceptions = velocity with control.
 
 ---
 
