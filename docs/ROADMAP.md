@@ -354,34 +354,6 @@ rekor-cli search --artifact "registry.example.com/demo-service@sha256:abc123"
 
 ---
 
-## Implementation Phases
-
-```mermaid
-gantt
-    title Golden Path Enhancement Roadmap
-    dateFormat YYYY-MM
-
-    section Phase 1 - Foundation
-    Pipeline Unit Tests       :2024-03, 2024-04
-    Grafana Dashboard        :2024-03, 2024-04
-
-    section Phase 2 - Security
-    SLSA Level 3            :2024-04, 2024-06
-    Keyless Signing         :2024-05, 2024-06
-    VEX Support             :2024-06, 2024-07
-
-    section Phase 3 - Scale
-    Multi-Language          :2024-05, 2024-08
-    CLI Scaffolding         :2024-07, 2024-09
-
-    section Phase 4 - Advanced
-    Progressive Delivery    :2024-08, 2024-10
-    Multi-Cluster           :2024-09, 2024-11
-    Compliance Automation   :2024-10, 2024-12
-```
-
----
-
 ## Quick Wins
 
 These can be implemented immediately with minimal effort:
